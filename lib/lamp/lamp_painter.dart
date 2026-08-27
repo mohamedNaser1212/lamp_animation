@@ -9,16 +9,20 @@ class LampPainter extends CustomPainter {
   const LampPainter({
     required this.isOn,
     required this.glow,
+    required this.intensity,
     required this.pullProgress,
     required this.swingRadians,
     required this.isDark,
+    this.ambientPhase = 0,
   });
 
   final bool isOn;
   final double glow;
+  final double intensity;
   final double pullProgress;
   final double swingRadians;
   final bool isDark;
+  final double ambientPhase;
 
   Color get _brass => Color.lerp(
         const Color(0xFFB08D3A),
@@ -51,6 +55,8 @@ class LampPainter extends CustomPainter {
   ) {
     if (glow <= 0) return;
 
+    final poolW = 160.0 + 90 * intensity;
+    final poolH = 44.0 + 22 * intensity;
     final pool = Paint()
       ..shader = RadialGradient(
         colors: [
@@ -62,19 +68,21 @@ class LampPainter extends CustomPainter {
       ).createShader(
         Rect.fromCenter(
           center: Offset(centerX, baseY + 6),
-          width: 200,
-          height: 56,
+          width: poolW,
+          height: poolH,
         ),
       );
     canvas.drawOval(
       Rect.fromCenter(
         center: Offset(centerX, baseY + 6),
-        width: 200,
-        height: 56,
+        width: poolW,
+        height: poolH,
       ),
       pool,
     );
 
+    final bloomR = 70.0 + 55 * intensity;
+    final breath = 1 + 0.03 * math.sin(ambientPhase * math.pi * 2);
     final bloom = Paint()
       ..shader = RadialGradient(
         colors: [
@@ -86,12 +94,12 @@ class LampPainter extends CustomPainter {
       ).createShader(
         Rect.fromCircle(
           center: Offset(centerX, size.height * 0.38 + 18),
-          radius: 95,
+          radius: bloomR * breath,
         ),
       );
     canvas.drawCircle(
       Offset(centerX, size.height * 0.38 + 18),
-      95,
+      bloomR * breath,
       bloom,
     );
   }
@@ -301,6 +309,7 @@ class LampPainter extends CustomPainter {
     );
 
     if (glow > 0.05) {
+      final bulbR = 14.0 + 14 * intensity;
       final bulb = Paint()
         ..shader = RadialGradient(
           colors: [
@@ -311,10 +320,10 @@ class LampPainter extends CustomPainter {
         ).createShader(
           Rect.fromCircle(
             center: Offset(centerX, shadeBottom - 18),
-            radius: 22,
+            radius: bulbR,
           ),
         );
-      canvas.drawCircle(Offset(centerX, shadeBottom - 18), 22, bulb);
+      canvas.drawCircle(Offset(centerX, shadeBottom - 18), bulbR, bulb);
     }
 
     canvas.drawCircle(
@@ -369,8 +378,10 @@ class LampPainter extends CustomPainter {
   bool shouldRepaint(covariant LampPainter oldDelegate) {
     return oldDelegate.isOn != isOn ||
         oldDelegate.glow != glow ||
+        oldDelegate.intensity != intensity ||
         oldDelegate.pullProgress != pullProgress ||
         oldDelegate.swingRadians != swingRadians ||
-        oldDelegate.isDark != isDark;
+        oldDelegate.isDark != isDark ||
+        oldDelegate.ambientPhase != ambientPhase;
   }
 }

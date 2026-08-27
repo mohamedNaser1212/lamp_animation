@@ -19,6 +19,19 @@ class PullCordController {
       vsync: vsync,
       duration: const Duration(seconds: 15),
     );
+    _intensityController = AnimationController(
+      vsync: vsync,
+      duration: const Duration(milliseconds: 420),
+      value: 0.7,
+    );
+    _flickerController = AnimationController(
+      vsync: vsync,
+      duration: const Duration(milliseconds: 1800),
+    );
+    _ambientController = AnimationController(
+      vsync: vsync,
+      duration: const Duration(seconds: 8),
+    )..repeat();
 
     pullAnimation = CurvedAnimation(
       parent: _pullController,
@@ -40,12 +53,18 @@ class PullCordController {
     lampListenable = Listenable.merge([
       cordListenable,
       _glowController,
+      _intensityController,
+      _flickerController,
+      _ambientController,
     ]);
   }
 
   late final AnimationController _pullController;
   late final AnimationController _glowController;
   late final AnimationController _swingController;
+  late final AnimationController _intensityController;
+  late final AnimationController _flickerController;
+  late final AnimationController _ambientController;
 
   late final Animation<double> pullAnimation;
   late final Animation<double> glowAnimation;
@@ -61,6 +80,27 @@ class PullCordController {
   final ValueNotifier<double> dragOffset = ValueNotifier(0);
 
   double _swingAmplitude = 0.28;
+  double _intensityTarget = 0.7;
+
+  /// 0–1 brightness when the lamp is on.
+  double get intensity => _intensityController.value;
+
+  AnimationController get intensityListenable => _intensityController;
+
+  /// Soft breathing / flicker layered on glow while the lamp is lit.
+  double get flicker {
+    if (!isOn.value || glowAnimation.value <= 0) return 1;
+    final t = _flickerController.value;
+    final ambient = _ambientController.value;
+    return 0.93 +
+        0.05 * math.sin(t * math.pi * 2) +
+        0.02 * math.sin(ambient * math.pi * 6);
+  }
+
+  /// Glow used by the painter: on/off × brightness × flicker.
+  double get effectiveGlow => glowAnimation.value * intensity * flicker;
+
+  double get ambientPhase => _ambientController.value;
 
   double get pullProgress => isPulling.value
       ? (dragOffset.value / LampGeometry.maxPull)
@@ -81,9 +121,26 @@ class PullCordController {
     _pullController.dispose();
     _glowController.dispose();
     _swingController.dispose();
+    _intensityController.dispose();
+    _flickerController.dispose();
+    _ambientController.dispose();
     isOn.dispose();
     isPulling.dispose();
     dragOffset.dispose();
+  }
+
+  Future<void> setIntensity(double value) async {
+    _intensityTarget = value.clamp(0.08, 1.0);
+    await _intensityController.animateTo(
+      _intensityTarget,
+      duration: const Duration(milliseconds: 280),
+      curve: Curves.easeOutCubic,
+    );
+  }
+
+  void setIntensityImmediate(double value) {
+    _intensityTarget = value.clamp(0.08, 1.0);
+    _intensityController.value = _intensityTarget;
   }
 
   Future<void> toggleLight() async {
@@ -91,9 +148,13 @@ class PullCordController {
     isOn.value = !isOn.value;
 
     if (isOn.value) {
+      _flickerController.repeat(reverse: true);
       await _glowController.forward();
     } else {
       await _glowController.reverse();
+      _flickerController
+        ..stop()
+        ..value = 0;
     }
   }
 

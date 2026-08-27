@@ -11,6 +11,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(home: PullCordLamp());
+    return MaterialApp(
+      title: 'Animate Training',
+      debugShowCheckedModeBanner: false,
+      home: const PullCordLamp(),
+    );
   }
 }
