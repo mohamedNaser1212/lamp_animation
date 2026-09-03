@@ -51,6 +51,7 @@ class _SizingInState extends State<SizingIn> {
         onTap: () {
           x.setWidth();
           x.setheight();
+          
         },
         child: Center(
           child: Column(
