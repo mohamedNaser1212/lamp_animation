@@ -1,8 +1,17 @@
 import 'dart:developer';
 
+import 'package:animate_training/core/helper/deep_linking_helper/deep_linking_helper.dart';
+import 'package:animate_training/core/service_locator/service_locator.dart';
 import 'package:flutter/material.dart';
 
-void main() {
+final navigatorKey = GlobalKey<NavigatorState>();
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  ServiceLocator().init();
+
+  await sl<DeepLinkingHelper>().init();
+
   runApp(const MyApp());
 }
 
@@ -11,8 +20,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return  MaterialApp(
       title: 'Animate Training',
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       home: SizingIn(),
     );
@@ -51,7 +61,6 @@ class _SizingInState extends State<SizingIn> {
         onTap: () {
           x.setWidth();
           x.setheight();
-          
         },
         child: Center(
           child: Column(
