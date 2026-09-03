@@ -29,8 +29,6 @@ class SizingIn extends StatefulWidget {
 class _SizingInState extends State<SizingIn> {
   late final X x;
 
-  late final ValueNotifier<double> _controller;
-
   int? _selected;
 
   @override
@@ -112,12 +110,13 @@ class _ContainerItemState extends State<ContainerItem>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 1),
     );
     _slideAnimation = Tween<Offset>(
       begin: const Offset(-1, 0),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
     _sizeAnimation = Tween<double>(begin: 80, end: 200).animate(_controller);
 
     _controller.forward();
@@ -145,7 +144,7 @@ class _ContainerItemState extends State<ContainerItem>
       child: SlideTransition(
         position: _slideAnimation,
         child: AnimatedBuilder(
-          animation: _sizeAnimation,
+          animation: _controller,
           builder:
               (context, child) => Container(
                 width: _sizeAnimation.value,
@@ -198,7 +197,7 @@ class X extends ChangeNotifier {
 }
 
 class _Animations extends StatefulWidget {
-  const _Animations({super.key});
+  const _Animations();
 
   @override
   State<_Animations> createState() => _AnimationsState();
