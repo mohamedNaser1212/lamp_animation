@@ -10,6 +10,10 @@ class FirebaseServiceHelper implements ServiceHelper {
 
   final FirebaseFirestore _firestore;
 
+  /// Keeps last document cursor per collection path.
+  final Map<String, DocumentSnapshot<Map<String, dynamic>>> _cursors = {};
+  final Map<String, bool> _hasMore = {};
+
   CollectionReference<Map<String, dynamic>> _collection(String path) {
     return _firestore.collection(path);
   }
@@ -82,25 +86,46 @@ class FirebaseServiceHelper implements ServiceHelper {
   }
 
   @override
+  void resetPagination(String path) {
+    _cursors.remove(path);
+    _hasMore.remove(path);
+  }
+
+  @override
   Future<PaginatedResult<Map<String, dynamic>>> getWithPagination({
     required String path,
-    required PaginationParams params,
+    int limit = 10,
+    bool refresh = false,
+    String orderBy = 'createdAt',
+    bool descending = true,
   }) async {
+    if (refresh) {
+      resetPagination(path);
+    }
+
+    if (_hasMore[path] == false && !refresh) {
+      return const PaginatedResult(items: [], hasMore: false);
+    }
+
     Query<Map<String, dynamic>> query = _collection(path).orderBy(
-      params.orderBy,
-      descending: params.descending,
+      orderBy,
+      descending: descending,
     );
 
-    final cursor = params.startAfter;
-    if (cursor is DocumentSnapshot) {
+    final cursor = _cursors[path];
+    if (cursor != null) {
       query = query.startAfterDocument(cursor);
     }
 
-    // Fetch one extra item to know if there is another page.
-    final snapshot = await query.limit(params.limit + 1).get();
+    final snapshot = await query.limit(limit + 1).get();
     final docs = snapshot.docs;
-    final hasMore = docs.length > params.limit;
-    final pageDocs = hasMore ? docs.sublist(0, params.limit) : docs;
+    final hasMore = docs.length > limit;
+    final pageDocs = hasMore ? docs.sublist(0, limit) : docs;
+
+    if (pageDocs.isNotEmpty) {
+      _cursors[path] = pageDocs.last;
+    }
+    _hasMore[path] = hasMore;
 
     final items = pageDocs.map((doc) {
       return <String, dynamic>{
@@ -112,7 +137,6 @@ class FirebaseServiceHelper implements ServiceHelper {
     return PaginatedResult<Map<String, dynamic>>(
       items: items,
       hasMore: hasMore,
-      lastCursor: pageDocs.isEmpty ? null : pageDocs.last,
     );
   }
 }

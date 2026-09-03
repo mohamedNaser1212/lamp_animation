@@ -10,9 +10,10 @@ class UsersRepositoryImpl implements UsersRepository {
 
   @override
   Future<PaginatedResult<UserModel>> getUsers({
-    required PaginationParams params,
+    int limit = 10,
+    bool refresh = false,
   }) {
-    return remoteDataSource.getUsers(params: params);
+    return remoteDataSource.getUsers(limit: limit, refresh: refresh);
   }
 
   @override

@@ -1,4 +1,3 @@
-import 'package:animate_training/core/helper/service_helper/pagination.dart';
 import 'package:animate_training/features/users/data/models/user_model.dart';
 import 'package:animate_training/features/users/domain/repositories/users_repository.dart';
 import 'package:animate_training/features/users/presentation/cubit/users_state.dart';
@@ -8,58 +7,52 @@ class UsersCubit extends Cubit<UsersState> {
   UsersCubit({
     required this.repository,
     this.pageSize = 10,
-  }) : super(const UsersState());
+  }) : super(const UsersInitial());
 
   final UsersRepository repository;
   final int pageSize;
 
-  Future<void> loadUsers({bool refresh = false}) async {
-    if (state.isLoading || state.isLoadingMore) return;
+  List<UserModel> get _currentUsers {
+    return switch (state) {
+      UsersSuccess(:final users) => users,
+      UsersLoadingMore(:final users) => users,
+      UsersFailure(:final users) => users,
+      _ => const [],
+    };
+  }
 
-    if (refresh) {
-      emit(
-        state.copyWith(
-          status: UsersStatus.loading,
-          users: const [],
-          hasMore: true,
-          clearCursor: true,
-          clearError: true,
-        ),
-      );
-    } else if (state.users.isEmpty) {
-      emit(state.copyWith(status: UsersStatus.loading, clearError: true));
+  bool get _hasMore {
+    return switch (state) {
+      UsersSuccess(:final hasMore) => hasMore,
+      _ => true,
+    };
+  }
+
+  Future<void> loadUsers({bool refresh = false}) async {
+    if (state is UsersLoading || state is UsersLoadingMore) return;
+
+    final existing = _currentUsers;
+
+    if (refresh || existing.isEmpty) {
+      emit(const UsersLoading());
     } else {
-      if (!state.hasMore) return;
-      emit(state.copyWith(status: UsersStatus.loadingMore, clearError: true));
+      if (!_hasMore) return;
+      emit(UsersLoadingMore(existing));
     }
 
     try {
       final result = await repository.getUsers(
-        params: PaginationParams(
-          limit: pageSize,
-          startAfter: refresh ? null : state.lastCursor,
-          orderBy: 'createdAt',
-          descending: true,
-        ),
+        limit: pageSize,
+        refresh: refresh || existing.isEmpty,
       );
 
-      emit(
-        state.copyWith(
-          status: UsersStatus.success,
-          users: refresh || state.users.isEmpty
-              ? result.items
-              : [...state.users, ...result.items],
-          hasMore: result.hasMore,
-          lastCursor: result.lastCursor,
-        ),
-      );
+      final users = (refresh || existing.isEmpty)
+          ? result.items
+          : [...existing, ...result.items];
+
+      emit(UsersSuccess(users: users, hasMore: result.hasMore));
     } catch (error) {
-      emit(
-        state.copyWith(
-          status: UsersStatus.failure,
-          errorMessage: error.toString(),
-        ),
-      );
+      emit(UsersFailure(error.toString(), users: existing));
     }
   }
 
@@ -67,65 +60,45 @@ class UsersCubit extends Cubit<UsersState> {
     required String name,
     required String email,
   }) async {
+    final existing = _currentUsers;
     try {
       final user = await repository.createUser(name: name, email: email);
       emit(
-        state.copyWith(
-          status: UsersStatus.success,
-          users: [user, ...state.users],
-          clearError: true,
+        UsersSuccess(
+          users: [user, ...existing],
+          hasMore: _hasMore,
         ),
       );
     } catch (error) {
-      emit(
-        state.copyWith(
-          status: UsersStatus.failure,
-          errorMessage: error.toString(),
-        ),
-      );
+      emit(UsersFailure(error.toString(), users: existing));
     }
   }
 
   Future<void> updateUser(UserModel user) async {
+    final existing = _currentUsers;
     try {
       final updated = await repository.updateUser(user);
-      final users = state.users
+      final users = existing
           .map((item) => item.id == updated.id ? updated : item)
           .toList();
-      emit(
-        state.copyWith(
-          status: UsersStatus.success,
-          users: users,
-          clearError: true,
-        ),
-      );
+      emit(UsersSuccess(users: users, hasMore: _hasMore));
     } catch (error) {
-      emit(
-        state.copyWith(
-          status: UsersStatus.failure,
-          errorMessage: error.toString(),
-        ),
-      );
+      emit(UsersFailure(error.toString(), users: existing));
     }
   }
 
   Future<void> deleteUser(String id) async {
+    final existing = _currentUsers;
     try {
       await repository.deleteUser(id);
       emit(
-        state.copyWith(
-          status: UsersStatus.success,
-          users: state.users.where((user) => user.id != id).toList(),
-          clearError: true,
+        UsersSuccess(
+          users: existing.where((user) => user.id != id).toList(),
+          hasMore: _hasMore,
         ),
       );
     } catch (error) {
-      emit(
-        state.copyWith(
-          status: UsersStatus.failure,
-          errorMessage: error.toString(),
-        ),
-      );
+      emit(UsersFailure(error.toString(), users: existing));
     }
   }
 }

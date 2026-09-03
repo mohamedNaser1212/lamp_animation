@@ -4,7 +4,8 @@ import 'package:animate_training/features/users/data/models/user_model.dart';
 
 abstract interface class UsersRemoteDataSource {
   Future<PaginatedResult<UserModel>> getUsers({
-    required PaginationParams params,
+    int limit = 10,
+    bool refresh = false,
   });
 
   Future<UserModel?> getUser(String id);
@@ -27,11 +28,13 @@ class UsersRemoteDataSourceImpl implements UsersRemoteDataSource {
 
   @override
   Future<PaginatedResult<UserModel>> getUsers({
-    required PaginationParams params,
+    int limit = 10,
+    bool refresh = false,
   }) async {
     final result = await serviceHelper.getWithPagination(
       path: collectionPath,
-      params: params,
+      limit: limit,
+      refresh: refresh,
     );
 
     return result.map(UserModel.fromMap);
@@ -51,7 +54,7 @@ class UsersRemoteDataSourceImpl implements UsersRemoteDataSource {
       data: user.toMap(),
       id: user.id.isEmpty ? null : user.id,
     );
-    return user.copyWith(id: id);
+    return UserModel(id: id, name: user.name, email: user.email);
   }
 
   @override

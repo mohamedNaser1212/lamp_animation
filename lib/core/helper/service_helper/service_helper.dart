@@ -25,8 +25,14 @@ abstract interface class ServiceHelper {
     required String id,
   });
 
+  /// Pagination cursor is stored inside the service implementation.
   Future<PaginatedResult<Map<String, dynamic>>> getWithPagination({
     required String path,
-    required PaginationParams params,
+    int limit = 10,
+    bool refresh = false,
+    String orderBy = 'createdAt',
+    bool descending = true,
   });
+
+  void resetPagination(String path);
 }

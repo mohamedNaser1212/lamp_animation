@@ -30,20 +30,6 @@ class UserModel extends Equatable {
     };
   }
 
-  UserModel copyWith({
-    String? id,
-    String? name,
-    String? email,
-    DateTime? createdAt,
-  }) {
-    return UserModel(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      email: email ?? this.email,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
-
   static DateTime? _parseDate(Object? value) {
     if (value == null) return null;
     if (value is DateTime) return value;

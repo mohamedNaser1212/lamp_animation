@@ -1,44 +1,36 @@
 import 'package:animate_training/features/users/data/models/user_model.dart';
-import 'package:equatable/equatable.dart';
 
-enum UsersStatus { initial, loading, loadingMore, success, failure }
+sealed class UsersState {
+  const UsersState();
+}
 
-class UsersState extends Equatable {
-  const UsersState({
-    this.status = UsersStatus.initial,
-    this.users = const [],
-    this.hasMore = true,
-    this.lastCursor,
-    this.errorMessage,
+final class UsersInitial extends UsersState {
+  const UsersInitial();
+}
+
+final class UsersLoading extends UsersState {
+  const UsersLoading();
+}
+
+final class UsersLoadingMore extends UsersState {
+  const UsersLoadingMore(this.users);
+
+  final List<UserModel> users;
+}
+
+final class UsersSuccess extends UsersState {
+  const UsersSuccess({
+    required this.users,
+    required this.hasMore,
   });
 
-  final UsersStatus status;
   final List<UserModel> users;
   final bool hasMore;
-  final Object? lastCursor;
-  final String? errorMessage;
+}
 
-  bool get isLoading => status == UsersStatus.loading;
-  bool get isLoadingMore => status == UsersStatus.loadingMore;
+final class UsersFailure extends UsersState {
+  const UsersFailure(this.message, {this.users = const []});
 
-  UsersState copyWith({
-    UsersStatus? status,
-    List<UserModel>? users,
-    bool? hasMore,
-    Object? lastCursor,
-    String? errorMessage,
-    bool clearError = false,
-    bool clearCursor = false,
-  }) {
-    return UsersState(
-      status: status ?? this.status,
-      users: users ?? this.users,
-      hasMore: hasMore ?? this.hasMore,
-      lastCursor: clearCursor ? null : (lastCursor ?? this.lastCursor),
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-    );
-  }
-
-  @override
-  List<Object?> get props => [status, users, hasMore, lastCursor, errorMessage];
+  final String message;
+  final List<UserModel> users;
 }

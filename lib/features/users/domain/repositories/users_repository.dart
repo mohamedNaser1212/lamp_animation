@@ -3,7 +3,8 @@ import 'package:animate_training/features/users/data/models/user_model.dart';
 
 abstract interface class UsersRepository {
   Future<PaginatedResult<UserModel>> getUsers({
-    required PaginationParams params,
+    int limit = 10,
+    bool refresh = false,
   });
 
   Future<UserModel?> getUser(String id);
