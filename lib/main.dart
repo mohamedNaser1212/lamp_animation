@@ -104,16 +104,21 @@ class ContainerItem extends StatefulWidget {
 class _ContainerItemState extends State<ContainerItem>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-  late Animation<double> _animation;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _sizeAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 2),
+      duration: const Duration(seconds: 2),
     );
-    _animation = Tween<double>(begin: 0, end: 10).animate(_controller);
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(-1, 0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+    _sizeAnimation = Tween<double>(begin: 80, end: 200).animate(_controller);
 
     _controller.forward();
   }
@@ -137,16 +142,14 @@ class _ContainerItemState extends State<ContainerItem>
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: _onTap,
-      child: AnimatedBuilder(
-        animation: _animation,
-        builder:
-            (context, child) => AnimatedSlide(
-              duration: Duration(seconds: 2),
-              offset: Offset(_animation.value, _animation.value),
-              child: AnimatedContainer(
-                duration: Duration(seconds: 2),
-                width: _animation.value * 20,
-                height: _animation.value * 20,
+      child: SlideTransition(
+        position: _slideAnimation,
+        child: AnimatedBuilder(
+          animation: _sizeAnimation,
+          builder:
+              (context, child) => Container(
+                width: _sizeAnimation.value,
+                height: _sizeAnimation.value,
                 decoration: BoxDecoration(
                   color: _isSelected ? Colors.red : Colors.amberAccent,
                   border: Border.all(
@@ -155,8 +158,8 @@ class _ContainerItemState extends State<ContainerItem>
                 ),
                 child: child,
               ),
-            ),
-        child: Text('index:${widget.index}'),
+          child: Text('index:${widget.index}'),
+        ),
       ),
     );
   }
