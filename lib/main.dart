@@ -100,14 +100,20 @@ class ContainerItem extends StatefulWidget {
 }
 
 class _ContainerItemState extends State<ContainerItem>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late AnimationController _controller;
+  late AnimationController _colorController;
   late Animation<Offset> _slideAnimation;
   late Animation<double> _sizeAnimation;
+  late Animation<Color?> _colorAnimation;
 
   @override
   void initState() {
     super.initState();
+    _colorController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    );
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 1),
@@ -119,10 +125,16 @@ class _ContainerItemState extends State<ContainerItem>
 
     _sizeAnimation = Tween<double>(begin: 80, end: 200).animate(_controller);
 
+    _colorAnimation = ColorTween(
+      begin: Colors.amber.shade500,
+      end: Colors.red.shade500,
+    ).animate(_colorController);
+
     _controller.forward();
   }
 
   bool get _isSelected => widget.selectedIndex == widget.index;
+
   void _onTap() {
     if (_isSelected) {
       return;
@@ -132,8 +144,22 @@ class _ContainerItemState extends State<ContainerItem>
   }
 
   @override
+  void didUpdateWidget(covariant ContainerItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndex == oldWidget.selectedIndex) {
+      return;
+    }
+    if (_isSelected) {
+      _colorController.forward();
+    } else if (oldWidget.selectedIndex == widget.index) {
+      _colorController.reverse();
+    }
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
+    _colorController.dispose();
     super.dispose();
   }
 
@@ -144,13 +170,13 @@ class _ContainerItemState extends State<ContainerItem>
       child: SlideTransition(
         position: _slideAnimation,
         child: AnimatedBuilder(
-          animation: _controller,
+          animation: Listenable.merge([_controller, _colorController]),
           builder:
               (context, child) => Container(
                 width: _sizeAnimation.value,
                 height: _sizeAnimation.value,
                 decoration: BoxDecoration(
-                  color: _isSelected ? Colors.red : Colors.amberAccent,
+                  color: _colorAnimation.value,
                   border: Border.all(
                     color: _isSelected ? Colors.white : Colors.black,
                   ),
